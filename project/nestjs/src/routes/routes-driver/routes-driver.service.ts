@@ -3,7 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class RoutesDriverService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   async createOrUpdate(dto: { route_id: string; lat: number; lng: number }) {
     /* const countRouteDriver = await this.prismaService.routeDriver.count({
@@ -20,16 +20,20 @@ export class RoutesDriverService {
         route_id: dto.route_id,
         points: {
           set: {
-            lat: dto.lat,
-            lng: dto.lng,
+            location: {
+              lat: dto.lat,
+              lng: dto.lng,
+            },
           },
         },
       },
       update: {
         points: {
           set: {
-            lat: dto.lat,
-            lng: dto.lng,
+            location: {
+              lat: dto.lat,
+              lng: dto.lng,
+            },
           },
         },
       },
