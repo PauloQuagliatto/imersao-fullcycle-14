@@ -7,7 +7,7 @@ services:
     ports: 
       - 5000:5000
     volumes:
-      - .:/app
+      - .:/home/node/app
 
   db:
     container_name: db

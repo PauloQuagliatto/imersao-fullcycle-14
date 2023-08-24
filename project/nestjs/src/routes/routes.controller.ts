@@ -14,11 +14,13 @@ import { RouteSerializer } from './route.serializer';
 
 @Controller('routes')
 export class RoutesController {
-  constructor(private readonly routesService: RoutesService) {}
+  constructor(private readonly routesService: RoutesService) { }
 
   @Post()
-  create(@Body() createRouteDto: CreateRouteDto) {
-    return this.routesService.create(createRouteDto);
+  async create(@Body() createRouteDto: CreateRouteDto) {
+    const newRoute = await this.routesService.create(createRouteDto);
+
+    return new RouteSerializer(newRoute);
   }
 
   @Get()
