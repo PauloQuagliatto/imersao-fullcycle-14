@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 
-	"github.com/PauloQuagliatto/imersao-fullcycle-14/go/internal/routes/entity"
+  "github.com/PauloQuagliatto/imersao-fullcycle-14/project/go/internal/routes/entity"
 )
 
 type CreateRouteInput struct {

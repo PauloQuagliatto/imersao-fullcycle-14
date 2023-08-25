@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/PauloQuagliatto/imersao-fullcycle-14/go"
+	"github.com/PauloQuagliatto/imersao-fullcycle-14/project/go"
 	"github.com/mattn/go-sqlite3"
 
 	"github.com/stretchr/testify/require"

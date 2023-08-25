@@ -4,7 +4,7 @@ package usecase
 import (
 	"testing"
 
-	"github.com/PauloQuagliatto/imersao-fullcycle-14/go/internal/routes/entity"
+	"github.com/PauloQuagliatto/imersao-fullcycle-14/project/go/internal/routes/entity"
 	"github.com/stretchr/testify/mock"
 )
 

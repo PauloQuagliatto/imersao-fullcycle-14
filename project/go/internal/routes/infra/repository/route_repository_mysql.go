@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/PauloQuagliatto/imersao-fullcycle-14/go"
+	"github.com/PauloQuagliatto/imersao-fullcycle-14/project/go"
 )
 
 type RouteRepositoryMysql struct {

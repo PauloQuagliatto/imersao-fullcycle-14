@@ -1,4 +1,4 @@
-module github.com/PauloQuagliatto/imersao-fullcycle-14/go
+module github.com/PauloQuagliatto/imersao-fullcycle-14/project/go
 
 go 1.20
 
