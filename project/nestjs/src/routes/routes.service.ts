@@ -1,14 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { DirectionsService } from 'src/maps/directions/directions.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { DirectionsService } from '../maps/directions/directions.service';
+import { ClientKafka } from '@nestjs/microservices';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class RoutesService {
   constructor(
-    private readonly prismaService: PrismaService,
-    private readonly directionsService: DirectionsService,
+    private prismaService: PrismaService,
+    private directionsService: DirectionsService,
+    // @Inject('KAFKA_SERVICE')
+    // private kafkaService: ClientKafka,
+    @InjectQueue('kafka-producer') private kafkaProducerQueue: Queue,
   ) {}
 
   async create(createRouteDto: CreateRouteDto) {
@@ -17,9 +23,8 @@ export class RoutesService {
         createRouteDto.source_id,
         createRouteDto.destination_id,
       );
-
     const legs = routes[0].legs[0];
-    return this.prismaService.route.create({
+    const routeCreated = await this.prismaService.route.create({
       data: {
         name: createRouteDto.name,
         source: {
@@ -46,53 +51,28 @@ export class RoutesService {
         }),
       },
     });
+    await this.kafkaProducerQueue.add({
+      event: 'RouteCreated',
+      id: routeCreated.id,
+      name: routeCreated.name,
+      distance: legs.distance.value,
+    });
+    // await this.kafkaService.emit('route', {
+    //   event: 'RouteCreated',
+    //   id: routeCreated.id,
+    //   name: routeCreated.name,
+    //   distance: routeCreated.distance,
+    // });
+    return routeCreated;
   }
 
   findAll() {
-    return this.prismaService.route.findMany({});
+    return this.prismaService.route.findMany();
   }
 
   findOne(id: string) {
     return this.prismaService.route.findUniqueOrThrow({
-      where: {
-        id,
-      },
-    });
-  }
-
-  update(id: string, updateRouteDto: UpdateRouteDto) {
-    return this.prismaService.route.update({
-      where: {
-        id,
-      },
-      data: {
-        name: updateRouteDto.name,
-        source: {
-          name: updateRouteDto.source_id,
-          location: {
-            lat: 0,
-            lng: 0,
-          },
-        },
-        destination: {
-          name: updateRouteDto.destination_id,
-          location: {
-            lat: 0,
-            lng: 0,
-          },
-        },
-        distance: 0,
-        duration: 0,
-        directions: '{}',
-      },
-    });
-  }
-
-  remove(id: string) {
-    return this.prismaService.route.delete({
-      where: {
-        id,
-      },
+      where: { id },
     });
   }
 }

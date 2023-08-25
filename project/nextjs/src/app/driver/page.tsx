@@ -1,124 +1,80 @@
-'use client'
+"use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
-import type { DirectionsResponseData, FindPlaceFromTextResponseData } from "@googlemaps/google-maps-services-js";
-
+import { useEffect, useRef } from "react";
 import { useMap } from "../hooks/useMap";
+import { Route } from "../utils/model";
+import { socket } from "../utils/socket-io";
+import { Button, Typography } from "@mui/material";
+import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
+import { RouteSelect } from "../components/RouteSelect";
 
-export function NewRoutePage() {
-  const mapContainerRef = useRef(null);
+export function DriverPage() {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const map = useMap(mapContainerRef);
-  const [directionsData, setDirectionsData] = useState<
-    DirectionsResponseData & { request: any }
-  >();
 
-  async function searchPlace(event: FormEvent) {
-    event.preventDefault();
-    const source = (document.getElementById("source") as HTMLInputElement).value;
-    const destination = (document.getElementById("destination") as HTMLInputElement).value;
+  useEffect(() => {
+    socket.connect();
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
-    const [sourceResponse, destinationResponse] = await Promise.all([
-      fetch(`http://localhost:5000/places?text=${source}`),
-      fetch(`http://localhost:5000/places?text=${destination}`)
-    ]);
-
-    const [sourcePlace, destinationPlace]: FindPlaceFromTextResponseData[] = await Promise.all([
-      sourceResponse.json(),
-      destinationResponse.json()
-    ]);
-
-    if (sourcePlace.status !== 'OK') {
-      alert('Nao foi possivel encontrar a origem');
-      return;
-    }
-
-    if (destinationPlace.status !== 'OK') {
-      alert('Nao foi possivel encontrar o destino');
-      return;
-    }
-
-    const placeSourceId = sourcePlace.candidates[0].place_id;
-    const placeDestinationId = destinationPlace.candidates[0].place_id;
-    const directionsResponse = await fetch(
-      `http://localhost:5000/directions?originId=${placeSourceId}&destinationId=${placeDestinationId}`
-    );
-
-    const directionsData: DirectionsResponseData & { request: any } = await directionsResponse.json();
-
-    setDirectionsData(directionsData);
-
+  async function startRoute() {
+    const routeId = (document.getElementById("route") as HTMLSelectElement)
+      .value;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_NEXT_API_URL}/routes/${routeId}`);
+    const route: Route = await response.json();
     map?.removeAllRoutes();
-
     await map?.addRouteWithIcons({
-      routeId: '1',
+      routeId: routeId,
       startMarkerOptions: {
-        position: directionsData.routes[0].legs[0].start_location,
+        position: route.directions.routes[0].legs[0].start_location,
       },
       endMarkerOptions: {
-        position: directionsData.routes[0].legs[0].end_location,
+        position: route.directions.routes[0].legs[0].end_location,
       },
       carMarkerOptions: {
-        position: directionsData.routes[0].legs[0].start_location,
-      }
-    });
-  }
-
-  async function createRoute() {
-    const startAddress = directionsData!.routes[0].legs[0].start_address;
-    const endAddress = directionsData!.routes[0].legs[0].end_address;
-    const response = await fetch(`http://localhost:5000/rotues` ,{
-      method: "POST",
-      headers: {
-        'Content-Type': 'aplication/json',
+        position: route.directions.routes[0].legs[0].start_location,
       },
-      body: JSON.stringify({
-        name: `${startAddress} - ${endAddress}`,
-        source_id: directionsData!.request.origin.place_id,
-        destination_id: directionsData!.request.destination.place_id,
-      })
     });
 
-    const route = await response.json();
+    const { steps } = route.directions.routes[0].legs[0];
+
+    for (const step of steps) {
+      await sleep(2000);
+      map?.moveCar(routeId, step.start_location);
+      socket.emit("new-points", {
+        route_id: routeId,
+        lat: step.start_location.lat,
+        lng: step.start_location.lng,
+      });
+
+      await sleep(2000);
+      map?.moveCar(routeId, step.end_location);
+      socket.emit("new-points", {
+        route_id: routeId,
+        lat: step.end_location.lat,
+        lng: step.end_location.lng,
+      });
+    }
   }
+
   return (
-    <div style={{
-      height: "100%",
-      width: "100%"
-    }}>
-      <div>
-        <h1>
-          Minha Viagem
-        </h1>
-        <div style={{
-          display: "flex",
-          flexDirection: "column"
-        }}>
-            <select id="route">
-                
-            </select>
-            <button type="submit">Enviar</button>
+    <Grid2 container sx={{ display: "flex", flex: 1 }}>
+      <Grid2 xs={4} px={2}>
+        <Typography variant="h4">Nova rota</Typography>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <RouteSelect id="route" />
+          <Button variant="contained" onClick={startRoute} fullWidth>
+            Iniciar a viagem
+          </Button>
         </div>
-        {directionsData &&
-          <ul>
-            <li>Origem: {directionsData.routes[0].legs[0].start_address}</li>
-            <li>Destino: {directionsData.routes[0].legs[0].end_address}</li>
-            <li>
-              <button onClick={createRoute}>Criar Rota</button>
-            </li>
-          </ul>
-        }
-      </div>
-      <div
-        id='map'
-        style={{
-          height: "100%",
-          width: "100%"
-        }}
-        ref={mapContainerRef}
-      >
-      </div>
-    </div>
+      </Grid2>
+      <Grid2 id="map" xs={8} ref={mapContainerRef}></Grid2>
+    </Grid2>
   );
 }
 
-export default NewRoutePage;
+export default DriverPage;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

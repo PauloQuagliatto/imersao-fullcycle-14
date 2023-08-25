@@ -8,6 +8,11 @@ services:
       - 5000:5000
     volumes:
       - .:/home/node/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis:
+    image: redis:7.0.8-alpine
 
   db:
     container_name: db
